@@ -5,8 +5,8 @@
 int CE=1;
 int IRQ=9;
 int CSN=2;
-int LED = 7;
-int ledPin = 3;
+int LAMP = 3;
+int ledPin = 7;
 
 byte addrRequest = 128;
 
@@ -76,8 +76,10 @@ void setup(){
   //set up rf
   lastMilli = millis();
   delay(1000);
-  pinMode(LED, OUTPUT);
-  digitalWrite(LED, HIGH);
+  pinMode(LAMP, OUTPUT);
+  digitalWrite(LAMP, LOW);
+  pinMode(ledPin, OUTPUT);
+  digitalWrite(ledPin, LOW);
   pinMode(IRQ, INPUT);
   pinMode(CSN, OUTPUT);
   digitalWrite(CSN, HIGH);
@@ -85,7 +87,9 @@ void setup(){
   digitalWrite(CE,LOW);
   SPI.setDataMode(SPI_MODE0);
   SPI.begin();
+  digitalWrite(LAMP, HIGH);
   nrfSlavOn();
+  digitalWrite(LAMP, LOW);
   delay(5);
   writeReg(0x00,0b00001110);  //powerup
   flushBuffers();
@@ -102,7 +106,7 @@ void setup(){
 }
 
 void loop(){
-  //handle light levels
+  /*handle light levels
   if (millis() - lastMilli >= 15)
   {
     // This stuff does the flickering
@@ -170,7 +174,7 @@ void loop(){
     ++frame;
     lastMilli += 15;
   }
-  
+  */
   
 //  if(digitalRead(IRQ)==LOW)
 //{
@@ -187,7 +191,7 @@ void loop(){
   writeReg(0x07, 0b01110000);
   flushBuffers();
   delay(50);
-  digitalWrite(LED, tester%2);
+  digitalWrite(LAMP, tester%2);
   tester++;
 }
 
@@ -208,14 +212,14 @@ void nrfSlavOn(){
 
 void transmitSpin(byte data){
   byte flag=0;
-  while(!flag){
+  //while(!flag){
     transmit(data);  
     spin();
     if(0b00100000&readReg(0x07)){
       flag=1;
     }
     clearStatus();
-  }
+  //}
 }
 
 byte getSender(){
@@ -242,7 +246,12 @@ void setRX(byte addr){
 }
 
 void spin(){
-  while(digitalRead(IRQ)==HIGH){}
+  while(digitalRead(IRQ)==HIGH){
+    digitalWrite(ledPin, HIGH);
+    delay(50);
+    digitalWrite(ledPin, LOW);
+    delay(50);    
+  }
 }
 
 int verifyData(){  //clears status and returns byte if good, else returns -1 (without clearing)
@@ -261,6 +270,7 @@ void clearStatus(){
 
 byte writeAddr(byte addr, byte index){
   digitalWrite(CSN, LOW);
+  digitalWrite(ledPin, HIGH);
   NOP;
   byte incoming = SPI.transfer(writeRegVal(addr)); //first receive addr
   NOP;
@@ -272,6 +282,7 @@ byte writeAddr(byte addr, byte index){
     SPI.transfer(0xE7);
     NOP;
   }
+  digitalWrite(ledPin, LOW);
   digitalWrite(CSN, HIGH);
   NOP;
   return incoming;
